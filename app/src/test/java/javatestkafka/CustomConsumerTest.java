@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,14 +17,13 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class CustomConsumerTest {
 
   final String TOPIC = "TOPIC";
   final String BROKERS = "bad.server:4040";
-  final int SECONDS = 5;
+  final int SECONDS = 600;
 
   MockConsumer<String, String> consumer;
   KafkaConsumer<String, String> consumerKafka;
@@ -40,11 +38,11 @@ class CustomConsumerTest {
       this.consumer.rebalance(Collections.singletonList(new TopicPartition(this.TOPIC, 0)));
       this.consumer.addRecord(new ConsumerRecord<String, String>(this.TOPIC, 0, 0L, "key", "value"));
     });
-    this.consumer.schedulePollTask(() -> this.customConsumer.stop());
     HashMap<TopicPartition, Long> startOffset = new HashMap<>();
     TopicPartition tp = new TopicPartition(this.TOPIC, 0);
     startOffset.put(tp, 0L);
     this.consumer.updateBeginningOffsets(startOffset);
+
   }
 
   /**
@@ -98,27 +96,13 @@ class CustomConsumerTest {
   /**
    * Test an open connection with the broker and then shutdown process
    */
-  @Nested
-  class WhenRunning {
+  @Test
+  @DisplayName("Test open a connection for a given time and then shut down the process")
+  void openConnectionToBroker() {
 
-    @BeforeEach
-    void setUp() {
-      customConsumer = new CustomConsumer<String, String>();
-      consumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
-      customConsumer.createConsumer(consumer);
-      assertDoesNotThrow(() -> {
-        customConsumer.consume(TOPIC, SECONDS);
-      });
-    }
-
-    @Test
-    @DisplayName("Test open a connection for a given time and then shut down the process")
-    void openConnectionToBroker() {
-
-      assertThrows(WakeupException.class, () -> {
-        customConsumer.stop();
-      });
-      assertTrue(consumer.closed());
-    }
+    assertThrows(WakeupException.class, () -> {
+      customConsumer.consume(TOPIC, SECONDS);
+      customConsumer.stop();
+    });
   }
 }

@@ -72,18 +72,21 @@ public class CustomConsumer<K, V> {
    */
   public void consume(String topic, int seconds) throws Exception {
     try {
-      this.consumer.subscribe(Arrays.asList(topic));
       while (true) {
+        this.consumer.subscribe(Arrays.asList(topic));
         ConsumerRecords<K, V> records = this.consumer.poll(Duration.ofSeconds(seconds));
         for (ConsumerRecord<K, V> record : records) {
           data.add(record.value());
         }
-        this.consumer.commitAsync();
+        if (records.isEmpty())
+          return;
       }
     } catch (WakeupException e) {
       System.out.println("Shutting down");
+      throw e;
     } catch (Exception e) {
       System.out.println(e.getMessage());
+      throw e;
     } finally {
       this.consumer.close();
     }
